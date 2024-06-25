@@ -12,6 +12,7 @@ env:
 
 jobs:
   build-push-artifact:
+    name: Build and push Docker image
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -37,3 +38,23 @@ jobs:
 
       - name: Push image
         run: docker push ${{ env.GAR_LOCATION }}
+  
+  deploy:
+    name: Deploy to Cloud Run
+    needs: build-push-artifact
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@main
+        with:
+          service: itsparking
+          image: ${{ env.GAR_LOCATION }}
+          project_id: ${{ env.PROJECT_ID }}
+          region: ${{ env.REGION }}
+          platform: managed
+          allow_unauthenticated: true
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.SERVICE_ACCOUNT_KEY }}
+      
+      - name: Output URL
+        run: echo ${{ steps.deploy.outputs.url }}
